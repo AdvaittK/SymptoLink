@@ -4,8 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Star, MapPin, Calendar } from "lucide-react"
+import { Star, MapPin, Calendar, Search, ChevronRight, Filter, Clock } from "lucide-react"
 import { useTranslation } from "@/components/language-provider"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type Doctor = {
   id: string
@@ -26,6 +29,12 @@ export default function DoctorList() {
   const [isLoading, setIsLoading] = useState(true)
   const { t } = useTranslation()
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null)
+  const [sortOption, setSortOption] = useState<"distance" | "rating">("distance")
+  
+  // Get all unique specialties
+  const specialties = [...new Set(doctors.map(doctor => doctor.specialty))].sort()
 
   // Get user location
   useEffect(() => {
@@ -321,11 +330,6 @@ export default function DoctorList() {
             }
           })
 
-          // Sort by distance
-          doctorsWithDistance.sort((a, b) => {
-            return parseFloat(a.distance!.split(' ')[0]) - parseFloat(b.distance!.split(' ')[0])
-          })
-
           setDoctors(doctorsWithDistance)
           setIsLoading(false)
         }, 1500)
@@ -337,15 +341,35 @@ export default function DoctorList() {
 
     fetchDoctors()
   }, [userLocation])
+  
+  // Filter and sort doctors
+  const filteredDoctors = doctors.filter(doctor => {
+    // Filter by search query
+    const matchesSearch = doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         doctor.address.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    // Filter by specialty if selected
+    const matchesSpecialty = selectedSpecialty ? doctor.specialty === selectedSpecialty : true
+    
+    return matchesSearch && matchesSpecialty
+  }).sort((a, b) => {
+    // Sort by selected option
+    if (sortOption === "distance") {
+      return parseFloat(a.distance!.split(' ')[0]) - parseFloat(b.distance!.split(' ')[0])
+    } else {
+      return b.rating - a.rating
+    }
+  })
 
   if (isLoading) {
     return (
-      <div className="space-y-4 mt-6">
+      <div className="space-y-3">
         {[1, 2, 3].map((i) => (
           <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+            <CardContent className="p-3">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
@@ -360,52 +384,132 @@ export default function DoctorList() {
   }
 
   return (
-    <div className="space-y-4 mt-6">
-      {doctors.map((doctor) => (
-        <Card key={doctor.id} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-teal-100 text-teal-800">
-                  {doctor.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h3 className="font-semibold">{doctor.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{doctor.specialty}</p>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {/* Search input */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <Input
+            type="search"
+            placeholder={t("Search doctors, specialties...")}
+            className="pl-9 text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar">
+          <Badge 
+            variant={sortOption === "distance" ? "default" : "outline"}
+            className="cursor-pointer whitespace-nowrap"
+            onClick={() => setSortOption("distance")}
+          >
+            <MapPin className="h-3 w-3 mr-1" /> {t("Nearest")}
+          </Badge>
+          
+          <Badge 
+            variant={sortOption === "rating" ? "default" : "outline"}
+            className="cursor-pointer whitespace-nowrap"
+            onClick={() => setSortOption("rating")}
+          >
+            <Star className="h-3 w-3 mr-1" /> {t("Highest rated")}
+          </Badge>
+          
+          <Badge 
+            variant={selectedSpecialty === null ? "default" : "outline"}
+            className="cursor-pointer whitespace-nowrap"
+            onClick={() => setSelectedSpecialty(null)}
+          >
+            {t("All specialties")}
+          </Badge>
 
-                <div className="flex items-center mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  <span>
-                    {doctor.address} • {doctor.distance}
-                  </span>
-                </div>
+          {specialties.map((specialty) => (
+            <Badge
+              key={specialty}
+              variant={selectedSpecialty === specialty ? "default" : "outline"}
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => setSelectedSpecialty(specialty)}
+            >
+              {specialty}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      
+      {/* Results count */}
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        {t("Showing")} {filteredDoctors.length} {t("of")} {doctors.length} {t("doctors")}
+        {selectedSpecialty && ` ${t("in")} ${selectedSpecialty}`}
+      </div>
+      
+      {/* Doctor list */}
+      <ScrollArea className="pr-3 -mr-3">
+        <div className="space-y-3 pb-4">
+          {filteredDoctors.length > 0 ? (
+            filteredDoctors.map((doctor) => (
+              <Card key={doctor.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-teal-100 text-teal-800 text-xs">
+                        {doctor.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0">
+                          <h3 className="font-medium text-sm truncate">{doctor.name}</h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{doctor.specialty}</p>
+                        </div>
+                        <div className="flex items-center ml-2">
+                          <Star className="h-3 w-3 text-yellow-500 mr-1 flex-shrink-0" />
+                          <span className="text-xs font-medium">{doctor.rating}</span>
+                        </div>
+                      </div>
 
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                    <span className="text-sm font-medium">{doctor.rating}</span>
+                      <div className="flex items-center mt-1 text-xs text-gray-600 dark:text-gray-400">
+                        <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate">
+                          {doctor.distance} • {doctor.address}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center text-xs text-teal-600 dark:text-teal-400">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>{doctor.availability}</span>
+                        </div>
+
+                        <Button className="h-7 px-2 text-xs bg-teal-600 hover:bg-teal-700">
+                          {t("Book")}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="flex items-center text-sm text-teal-600">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    <span>
-                      {t("Available")}: {doctor.availability}
-                    </span>
-                  </div>
-                </div>
-
-                <Button className="w-full mt-3 bg-teal-600 hover:bg-teal-700 text-sm h-8">
-                  {t("Book Appointment")}
-                </Button>
-              </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">{t("No doctors match your search criteria")}</p>
+              <Button 
+                variant="link" 
+                className="mt-2 text-teal-600 dark:text-teal-400"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedSpecialty(null)
+                }}
+              >
+                {t("Clear filters")}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 }

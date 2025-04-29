@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { useAuth } from "@/components/auth-provider"
@@ -13,64 +14,151 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Menu, X, User, LogOut, Settings } from "lucide-react"
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+import { Menu, X, User, LogOut, Settings, Bell, Home, Stethoscope, AlertCircle } from "lucide-react"
 import { useTranslation } from "@/components/language-provider"
+import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { user, signOut } = useAuth()
   const { t } = useTranslation()
+  const pathname = usePathname()
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
   const closeMenu = () => setIsMenuOpen(false)
+  
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY
+      if (offset > 50) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  // Check if link is active
+  const isActive = (path: string) => {
+    return pathname === path
+  }
 
   return (
-    <header className="border-b bg-background/80 backdrop-blur-md sticky top-0 z-40 shadow-sm">
-      <div className="container mx-auto px-4 py-4">
+    <header className={cn(
+      "border-b sticky top-0 z-40 transition-all duration-300 backdrop-blur-md",
+      scrolled 
+        ? "bg-background/90 shadow-md py-2" 
+        : "bg-background/70 shadow-sm py-4"
+    )}>
+      <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-glow transition-all duration-300">
+            <div className={cn(
+              "rounded-lg overflow-hidden flex items-center justify-center transition-all duration-300",
+              scrolled ? "h-7 w-7" : "h-8 w-8",
+              "group-hover:shadow-[0_0_15px_rgba(45,212,191,0.5)] group-hover:scale-105"
+            )}>
               <img 
                 src="/images/logo.png" 
                 alt="SymptoLink Logo" 
                 className="h-full w-full object-contain" 
-                style={{ maxHeight: "100%", width: "auto" }}
+                style={{ borderRadius: '0.5rem' }}
               />
             </div>
-            <span className="text-2xl font-bold gradient-text">SymptoLink</span>
+            <span className={cn(
+              "font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-teal-500 transition-all duration-300",
+              scrolled ? "text-xl" : "text-2xl"
+            )}>
+              SymptoLink
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/symptoms"
-              className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 fancy-link py-1 font-medium"
-            >
-              {t("Symptoms")}
-            </Link>
-            <Link
-              href="/find-doctors"
-              className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 fancy-link py-1 font-medium"
-            >
-              {t("Find Doctors")}
-            </Link>
-            <Link
-              href="/emergency"
-              className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 fancy-link py-1 font-medium"
-            >
-              {t("Emergency")}
-            </Link>
-          </nav>
+          <NavigationMenu className="hidden lg:flex">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/symptoms" legacyBehavior passHref>
+                  <NavigationMenuLink 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      isActive("/symptoms") && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <Stethoscope className="mr-2 h-4 w-4" />
+                    {t("Symptoms")}
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              
+              <NavigationMenuItem>
+                <Link href="/find-doctors" legacyBehavior passHref>
+                  <NavigationMenuLink 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      isActive("/find-doctors") && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    {t("Find Doctors")}
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              
+              <NavigationMenuItem>
+                <Link href="/emergency" legacyBehavior passHref>
+                  <NavigationMenuLink 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      isActive("/emergency") && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                    {t("Emergency")}
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             <ModeToggle />
 
+            {/* Notifications */}
+            {user && (
+              <Button variant="ghost" size="icon" className="rounded-full relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[10px] flex items-center justify-center text-white">
+                  2
+                </span>
+              </Button>
+            )}
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 border border-teal-200 dark:border-teal-800 hover:shadow-glow transition-shadow duration-300">
+                  <Button 
+                    variant="ghost" 
+                    className="relative h-10 w-10 rounded-full p-0 border border-teal-200 dark:border-teal-800 hover:shadow-[0_0_15px_rgba(45,212,191,0.5)] transition-shadow duration-300"
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
                       <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-700 text-white">
@@ -106,7 +194,7 @@ export default function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="py-2 cursor-pointer">
+                  <DropdownMenuItem onClick={signOut} className="py-2 cursor-pointer text-red-500 hover:text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{t("Log out")}</span>
                   </DropdownMenuItem>
@@ -114,10 +202,17 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-3">
-                <Button asChild variant="outline" className="border-teal-500/30 hover:border-teal-500/60 hover:bg-teal-50/50 dark:hover:bg-teal-950/30">
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="border-teal-500/30 hover:border-teal-500/60 hover:bg-teal-50/50 dark:hover:bg-teal-950/30"
+                >
                   <Link href="/login">{t("Log in")}</Link>
                 </Button>
-                <Button asChild className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-600 hover-glow">
+                <Button 
+                  asChild 
+                  className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-600 shadow-sm hover:shadow-[0_0_15px_rgba(45,212,191,0.4)] transition-shadow"
+                >
                   <Link href="/register">{t("Sign up")}</Link>
                 </Button>
               </div>
@@ -127,8 +222,11 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <div className="flex items-center space-x-4 md:hidden">
             <ModeToggle />
-            <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Toggle Menu">
+            <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Toggle Menu" className="relative">
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {user && (
+                <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-2 h-2"></span>
+              )}
             </Button>
           </div>
         </div>
@@ -136,76 +234,135 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t animate-in slide-in-from-top duration-300">
+        <motion.div 
+          className="md:hidden border-t"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="container mx-auto px-4 py-6 space-y-6">
-            <nav className="flex flex-col space-y-5">
+            <nav className="flex flex-col space-y-1">
+              <Link
+                href="/"
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-3 rounded-md transition-colors",
+                  isActive("/") 
+                    ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 font-medium" 
+                    : "hover:bg-muted"
+                )}
+                onClick={closeMenu}
+              >
+                <Home className="h-5 w-5" />
+                <span>{t("Home")}</span>
+              </Link>
+              
               <Link
                 href="/symptoms"
-                className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 px-2 py-2 rounded-md hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors"
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-3 rounded-md transition-colors",
+                  isActive("/symptoms") 
+                    ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 font-medium" 
+                    : "hover:bg-muted"
+                )}
                 onClick={closeMenu}
               >
-                {t("Symptoms")}
+                <Stethoscope className="h-5 w-5" />
+                <span>{t("Symptoms")}</span>
               </Link>
+              
               <Link
                 href="/find-doctors"
-                className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 px-2 py-2 rounded-md hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors"
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-3 rounded-md transition-colors",
+                  isActive("/find-doctors") 
+                    ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 font-medium" 
+                    : "hover:bg-muted"
+                )}
                 onClick={closeMenu}
               >
-                {t("Find Doctors")}
+                <User className="h-5 w-5" />
+                <span>{t("Find Doctors")}</span>
               </Link>
+              
               <Link
                 href="/emergency"
-                className="text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500 px-2 py-2 rounded-md hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors"
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-3 rounded-md transition-colors",
+                  isActive("/emergency") 
+                    ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 font-medium" 
+                    : "hover:bg-muted"
+                )}
                 onClick={closeMenu}
               >
-                {t("Emergency")}
+                <AlertCircle className="h-5 w-5" />
+                <span>{t("Emergency")}</span>
               </Link>
             </nav>
 
-            <div className="flex flex-col space-y-2">
+            <div className="border-t pt-4">
               {user ? (
-                <>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
+                      <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-700 text-white">
+                        {user.displayName?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm">
+                      <p className="font-medium">{user.displayName || "User"}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[180px]">{user.email}</p>
+                    </div>
+                  </div>
+                  
                   <Link
                     href="/profile"
-                    className="flex items-center px-4 py-2 text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500"
+                    className="flex items-center px-3 py-2 hover:bg-muted rounded-md"
                     onClick={closeMenu}
                   >
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-3 h-4 w-4" />
                     <span>{t("Profile")}</span>
                   </Link>
+                  
                   <Link
                     href="/settings"
-                    className="flex items-center px-4 py-2 text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-500"
+                    className="flex items-center px-3 py-2 hover:bg-muted rounded-md"
                     onClick={closeMenu}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="mr-3 h-4 w-4" />
                     <span>{t("Settings")}</span>
                   </Link>
+                  
                   <Button
                     variant="ghost"
-                    className="flex items-center justify-start px-4 py-2"
+                    className="flex items-center justify-start w-full px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 rounded-md"
                     onClick={() => {
                       signOut()
                       closeMenu()
                     }}
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-3 h-4 w-4" />
                     <span>{t("Log out")}</span>
                   </Button>
-                </>
+                </div>
               ) : (
-                <>
-                  <Button asChild variant="ghost" className="w-full justify-center" onClick={closeMenu}>
+                <div className="flex flex-col space-y-3 px-2">
+                  <Button asChild variant="outline" className="w-full justify-center" onClick={closeMenu}>
                     <Link href="/login">{t("Log in")}</Link>
                   </Button>
-                  <Button asChild className="w-full justify-center bg-teal-600 hover:bg-teal-700" onClick={closeMenu}>
+                  <Button 
+                    asChild 
+                    className="w-full justify-center bg-gradient-to-r from-teal-600 to-teal-500" 
+                    onClick={closeMenu}
+                  >
                     <Link href="/register">{t("Sign up")}</Link>
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </header>
   )
