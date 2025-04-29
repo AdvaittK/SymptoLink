@@ -4,7 +4,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { LanguageSelector } from "@/components/language-selector"
 import { useAuth } from "@/components/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -31,8 +30,13 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center text-white font-bold text-lg group-hover:shadow-glow transition-all duration-300">
-              SL
+            <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center group-hover:shadow-glow transition-all duration-300">
+              <img 
+                src="/images/logo.png" 
+                alt="SymptoLink Logo" 
+                className="h-full w-full object-contain" 
+                style={{ maxHeight: "100%", width: "auto" }}
+              />
             </div>
             <span className="text-2xl font-bold gradient-text">SymptoLink</span>
           </Link>
@@ -61,7 +65,6 @@ export default function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <LanguageSelector />
             <ModeToggle />
 
             {user ? (
@@ -160,8 +163,6 @@ export default function Header() {
             </nav>
 
             <div className="flex flex-col space-y-2">
-              <LanguageSelector />
-
               {user ? (
                 <>
                   <Link

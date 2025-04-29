@@ -1,5 +1,8 @@
 {
-  "name": "my-v0-project",
+  "name": "symptolink",
+  "description": "SymptoLink is a web application that provides a platform for users to track and manage their health symptoms, offering personalized insights and recommendations based on their input.",
+  "author": "SymptoLink Team",
+  "license": "MIT",
   "version": "0.1.0",
   "private": true,
   "scripts": {

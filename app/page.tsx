@@ -59,7 +59,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-5">
             <Button asChild size="lg" className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-600 hover-glow text-lg h-14 px-8 rounded-xl">
               <Link href="/symptoms">
-                <Translator text="Check Symptoms" />
+                Check Symptoms
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
